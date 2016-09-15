@@ -1,0 +1,38 @@
+{
+  "id": "8О-401Б",
+  "Steward": "Старцева Надежда",
+  "Schedule": {
+    "Monday": [
+      {
+        "TimeStart": "",
+        "TimeEnd": "",
+        "TopWeek": {
+          "Subject": "",
+          "TeacherData": "",
+          "TypeLesson": ""
+        },
+        "BelowWeek": {
+          "Subject": "",
+          "TeacherData": "",
+          "TypeLesson": ""
+        },
+        "IsTopWeek": ""        
+      }
+    ],
+    "Tuesday": [
+
+    ],
+    "Wednesday": [
+
+    ],
+    "Thursday": [
+
+    ],
+    "Friday": [
+
+    ],
+    "Saturday": [
+
+    ]
+  }
+}
