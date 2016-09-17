@@ -7,6 +7,16 @@ using System.Web.Http;
 using System.Web.Http.Description;
 using Microsoft.Bot.Connector;
 using Newtonsoft.Json;
+using Microsoft.Azure.Documents;
+using Microsoft.Azure.Documents.Client;
+using Microsoft.Azure.Documents.Linq;
+using System.Configuration;
+using System.Linq.Expressions;
+using System.Net;
+using System.Threading.Tasks;
+using System.Web.UI;
+using Microsoft.Bot.Builder.Dialogs;
+using ScheduleBot.Dialogs;
 
 namespace ScheduleBot
 {
@@ -17,24 +27,56 @@ namespace ScheduleBot
         /// POST: api/Messages
         /// Receive a message from a user and reply to it
         /// </summary>
-        public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
+        public async Task<HttpResponseMessage> Post([FromBody] Activity activity)
         {
-            if (activity.Type == ActivityTypes.Message)
+            try
             {
-                ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
-                // calculate something for us to return
-                int length = (activity.Text ?? string.Empty).Length;
-
-                // return our reply to the user
-                Activity reply = activity.CreateReply($"You sent {activity.Text} which was {length} characters");
-                await connector.Conversations.ReplyToActivityAsync(reply);
+                if (activity == null || activity.GetActivityType() != ActivityTypes.Message)
+                {
+                    HandleSystemMessage(activity);
+                }
+                var client = activity.GetStateClient();
+                var userData = await client.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id);
+                var name = userData.GetProperty<string>("Name");
+                if (string.IsNullOrEmpty(name))
+                {
+                    ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+                    var isMeet = userData.GetProperty<bool?>("isMeet");
+                    if (isMeet == null || isMeet == false)
+                    {
+                        string meetMsg = @"Hi, my name is Rik, 
+I am here to help you remind schedule of lessons at the university. 
+Please tell me your name, and number of you group(fully).
+Example: Sergey, 8О-308Б";
+                        Activity reply = activity.CreateReply(meetMsg);
+                        userData.SetProperty<bool?>("isMeet", true);
+                        await client.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
+                        await connector.Conversations.ReplyToActivityAsync(reply);
+                    }
+                    else
+                    {
+                        var rep = CheckPerson(activity.Text);
+                        if (rep.Item2 != null)
+                        {
+                            userData.SetProperty<string>("Name", rep.Item2);
+                            userData.SetProperty<string>("Group", rep.Item3);
+                            await client.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
+                        }
+                        Activity reply = activity.CreateReply(rep.Item1);
+                        await connector.Conversations.ReplyToActivityAsync(reply);
+                    }
+                }
+                else
+                {
+                    await Conversation.SendAsync(activity, () => new ScheduleLuisDialog());
+                }
+                var response = Request.CreateResponse(HttpStatusCode.OK);
+                return response;
             }
-            else
+            catch (Exception e)
             {
-                HandleSystemMessage(activity);
+                throw;
             }
-            var response = Request.CreateResponse(HttpStatusCode.OK);
-            return response;
         }
 
         private Activity HandleSystemMessage(Activity message)
@@ -64,6 +106,23 @@ namespace ScheduleBot
             }
 
             return null;
+        }
+
+        // <status, name, group>
+        Tuple<string, string, string> CheckPerson(string msg)
+        {
+            var words = msg.Split(new char[] { ' ', ',' });
+            if (words.Length != 2)
+            {
+                return new Tuple<string, string, string>(@"Input data is incorrect, follow the example.", null, null);
+            }
+            else
+            {
+                var test = words[0].Contains("8О") || words[0].Contains('-')
+                    ? new Tuple<string, string>(words[1], words[0])
+                    : new Tuple<string, string>(words[0], words[1]);
+                return new Tuple<string, string, string>($"All right! {test.Item1}, let`s look what can I do. Please, send me next word: 'help', if you want to know about my abilities.", test.Item1, test.Item2);
+            }
         }
     }
 }
