@@ -11,6 +11,7 @@ namespace ScheduleBot
     {
         protected void Application_Start()
         {
+            DocumentDbRepository<Item>.Initialize();
             GlobalConfiguration.Configure(WebApiConfig.Register);
         }
     }

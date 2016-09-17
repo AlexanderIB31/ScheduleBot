@@ -37,6 +37,12 @@ namespace ScheduleBot
                 }
                 var client = activity.GetStateClient();
                 var userData = await client.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id);
+                #region clear userdata
+                //userData.SetProperty<string>("Name", "");
+                //userData.SetProperty<string>("Group", "");
+                //userData.SetProperty<bool?>("isMeet", false);
+                //await client.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
+                #endregion
                 var name = userData.GetProperty<string>("Name");
                 if (string.IsNullOrEmpty(name))
                 {
@@ -47,7 +53,7 @@ namespace ScheduleBot
                         string meetMsg = @"Hi, my name is Rik, 
 I am here to help you remind schedule of lessons at the university. 
 Please tell me your name, and number of you group(fully).
-Example: Sergey, 8О-308Б";
+Example: Sergey, 308";
                         Activity reply = activity.CreateReply(meetMsg);
                         userData.SetProperty<bool?>("isMeet", true);
                         await client.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
@@ -68,7 +74,8 @@ Example: Sergey, 8О-308Б";
                 }
                 else
                 {
-                    await Conversation.SendAsync(activity, () => new ScheduleLuisDialog());
+                    await Conversation.SendAsync(activity, () => new ScheduleLuisDialog(
+                        new Tuple<string,string>(userData.GetProperty<string>("Name"), userData.GetProperty<string>("Group"))));
                 }
                 var response = Request.CreateResponse(HttpStatusCode.OK);
                 return response;
@@ -111,7 +118,7 @@ Example: Sergey, 8О-308Б";
         // <status, name, group>
         Tuple<string, string, string> CheckPerson(string msg)
         {
-            var words = msg.Split(new char[] { ' ', ',' });
+            var words = msg.Split(',');
             if (words.Length != 2)
             {
                 return new Tuple<string, string, string>(@"Input data is incorrect, follow the example.", null, null);

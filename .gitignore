@@ -243,3 +243,4 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+ScheduleBot/ScheduleBot/Properties/PublishProfiles/ScheduleBot20160917114702 - Web Deploy.pubxml

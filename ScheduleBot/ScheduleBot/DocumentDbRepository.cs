@@ -20,6 +20,7 @@ namespace ScheduleBot
         public static void Initialize()
         {
             _client = new DocumentClient(new Uri(ConfigurationManager.AppSettings["endpoint"]), ConfigurationManager.AppSettings["authKey"]);
+            //var ok = client.ConnectionPolicy.EnableEndpointDiscovery;
             //CreateDatabaseIfNotExistsAsync().Wait();
             //CreateCollectionIfNotExistsAsync().Wait();
         }
